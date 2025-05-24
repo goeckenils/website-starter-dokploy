@@ -5,4 +5,5 @@ export default ({ env }) => ({
     keys: env.array('APP_KEYS'),
   },
   origin: env('CORS_ORIGIN').split(','),
+  url: "http://api.needmore.online"
 });
