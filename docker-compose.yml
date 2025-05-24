@@ -1,9 +1,24 @@
-version: "3.8"
+version: "3"
 
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: prod.Dockerfile
+    restart: always
+    ports:
+      - 3000
+    networks:
+      - dokploy-network
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.frontend.rule=Host(`app.needmore.online`)
+      - traefik.http.routers.frontend.entrypoints=websecure
+      - traefik.http.routers.frontend.tls.certresolver=letsencrypt
+      - traefik.http.services.frontend.loadbalancer.server.port=3000
+
   strapi:
     build: ./strapi
-    container_name: strapi
     image: modern-strapi:latest
     restart: unless-stopped
     env_file:
@@ -14,15 +29,16 @@ services:
     depends_on:
       - postgres
     networks:
-      - app-network
+      - dokploy-network
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.strapi.rule=Host(`yourdomain.com`) && PathPrefix(`/api`)"
-      - "traefik.http.services.strapi.loadbalancer.server.port=1337"
+      - traefik.enable=true
+      - traefik.http.routers.strapi.rule=Host(`api.needmore.online`)
+      - traefik.http.routers.strapi.entrypoints=websecure
+      - traefik.http.routers.strapi.tls.certresolver=letsencrypt
+      - traefik.http.services.strapi.loadbalancer.server.port=1337  # Default for Strapi
 
   postgres:
     image: postgres:15-alpine
-    container_name: postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: strapi
@@ -31,30 +47,12 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - app-network
-
-  frontend:
-    build: ./frontend
-    container_name: frontend
-    image: modern-nextjs:latest
-    restart: unless-stopped
-    env_file:
-      - ./frontend/.env
-    volumes:
-      - ./frontend:/app
-    depends_on:
-      - strapi
-    networks:
-      - app-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`yourdomain.com`) && PathPrefix(`/`)"
-      - "traefik.http.routers.frontend.priority=1"
-      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+      - dokploy-network
 
 volumes:
   pgdata:
   strapi-uploads:
 
 networks:
-  app-network:
+  dokploy-network:
+    external: true

@@ -1,17 +1,20 @@
-# Strapi v5 + Node 18 LTS
-FROM node:18-alpine
+#DockerFile
+FROM node:18-alpine3.18
+# Installing libvips-dev for sharp Compatibility
+RUN apk update && apk add --no-cache build-base gcc autoconf automake zlib-dev libpng-dev nasm bash vips-dev git
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
 
-WORKDIR /app
-
-# Install dependencies early (layer caching)
+WORKDIR /opt/
 COPY package.json package-lock.json ./
-RUN npm install
+RUN npm install -g node-gyp
+RUN npm config set fetch-retry-maxtimeout 600000 -g && npm install
+ENV PATH=/opt/node_modules/.bin:$PATH
 
-# Copy source code
+WORKDIR /opt/app
 COPY . .
-
-# Build Strapi admin panel
-RUN npm run build
-
+RUN chown -R node:node /opt/app
+USER node
+RUN ["npm", "run" , "build"]
 EXPOSE 1337
-CMD ["npm", "start"]
+CMD ["npm","run","develop"]
